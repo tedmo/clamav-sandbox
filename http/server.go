@@ -23,17 +23,23 @@ func (s *Server) ListenAndServe(addr string) error {
 func (s *Server) routes() *http.ServeMux {
 	router := http.NewServeMux()
 
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if err := s.handleFile(w, r); err != nil {
-			logger.New(r.Context()).Error(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
+	router.HandleFunc("/scan", handleError(s.handleScan))
 
 	return router
 }
 
-func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) error {
+func handleError(h appHandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := h(w, r); err != nil {
+			logger.New(r.Context()).Error(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+type appHandlerFunc func(w http.ResponseWriter, r *http.Request) error
+
+func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodPost {
 		return errors.New("unsupported method")
 	}
@@ -42,14 +48,9 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	file, header, err := r.FormFile("file")
+	file, _, err := r.FormFile("file")
 	if err != nil {
 		return err
-	}
-
-	filename := header.Filename
-	if filename == "" {
-		return errors.New("filename must not be empty")
 	}
 
 	status := http.StatusOK

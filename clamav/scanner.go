@@ -56,7 +56,7 @@ func (s *FileScanner) scanFilepath(ctx context.Context, file string) ([]byte, er
 	return executeCommand(ctx, cmd)
 }
 
-func executeCommand(ctx context.Context, cmd *exec.Cmd) ([]byte, error) {
+var executeCommand = func(ctx context.Context, cmd *exec.Cmd) ([]byte, error) {
 	log := logger.New(ctx).With(zap.String("command", cmd.String()))
 
 	log.Info("executing command")
